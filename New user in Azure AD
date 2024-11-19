@@ -1,0 +1,45 @@
+# Load required module
+if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
+    Install-Module -Name Microsoft.Graph -Scope CurrentUser -Force
+}
+
+# Import the Microsoft Graph module
+Import-Module Microsoft.Graph
+
+# Connect to Azure AD
+Connect-MgGraph -Scopes "User.ReadWrite.All, Group.ReadWrite.All, Directory.ReadWrite.All"
+
+# Input Variables
+$DisplayName = "John Doe"
+$UserPrincipalName = "johndoe@yourdomain.com"
+$MailNickname = "johndoe"
+$Password = "P@ssword123!"  # Ensure this meets your organization's complexity requirements
+$ForceChangePassword = $true  # Prompt the user to change the password at next sign-in
+$LicenseSkuId = "f30db892-07e9-47e9-837c-80727f46fd3d"  # Replace with your license SKU ID
+$GroupId = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"  # Replace with your group ID
+
+# Step 1: Create the User
+Write-Host "Creating user $UserPrincipalName..."
+$User = New-MgUser -DisplayName $DisplayName `
+                   -UserPrincipalName $UserPrincipalName `
+                   -MailNickname $MailNickname `
+                   -PasswordProfile @{Password=$Password; ForceChangePasswordNextSignIn=$ForceChangePassword} `
+                   -AccountEnabled $true
+
+# Confirm user creation
+if ($User) {
+    Write-Host "User $UserPrincipalName created successfully!"
+} else {
+    Write-Host "Failed to create user $UserPrincipalName."
+    exit
+}
+
+# Step 2: Assign a License
+Write-Host "Assigning license to user $UserPrincipalName..."
+Add-MgUserLicense -UserId $User.Id -AddLicenses @{SkuId=$LicenseSkuId} -RemoveLicenses @()
+
+# Step 3: Add User to Group
+Write-Host "Adding user $UserPrincipalName to group..."
+Add-MgGroupMember -GroupId $GroupId -DirectoryObjectId $User.Id
+
+Write-Host "User provisioning complete!"
