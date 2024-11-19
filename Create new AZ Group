@@ -1,0 +1,58 @@
+<details>
+<summary>This script creates a new Azure AD group and optionally adds users to it</summary>
+
+```powershell
+# Import the Microsoft Graph module (install if not already installed)
+if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
+    Install-Module -Name Microsoft.Graph -Scope CurrentUser -Force
+}
+
+# Import the module
+Import-Module Microsoft.Graph
+
+# Connect to Microsoft Graph
+Connect-MgGraph -Scopes "Group.ReadWrite.All, User.Read.All"
+
+# Define group parameters
+$GroupName = "<GROUP NAME>"
+$Description = "<GROUP DESCRIPTOR>"
+$MailNickname = "<MAIL NICKNAME>"  # Must be unique across the tenant
+$GroupType = "Unified"  # Options: "Unified" for Office 365 groups, or leave blank for security groups
+$IsSecurityEnabled = $true
+$IsMailEnabled = $false
+
+# Step 1: Create the Group
+Write-Host "Creating group: $GroupName..."
+$Group = New-MgGroup -DisplayName $GroupName `
+                     -Description $Description `
+                     -MailNickname $MailNickname `
+                     -MailEnabled $IsMailEnabled `
+                     -SecurityEnabled $IsSecurityEnabled
+
+if ($Group) {
+    Write-Host "Group '$GroupName' created successfully with ID: $($Group.Id)"
+} else {
+    Write-Host "Failed to create group '$GroupName'."
+    exit
+}
+
+# Step 2: Add Users to the Group (Optional)
+# Replace these emails with actual user UPNs from your tenant
+$UserEmails = @(
+    "",
+    "",
+    ""
+)
+
+Write-Host "Adding users to the group..."
+foreach ($Email in $UserEmails) {
+    $User = Get-MgUser -Filter "UserPrincipalName eq '$Email'"
+    if ($User) {
+        Add-MgGroupMember -GroupId $Group.Id -DirectoryObjectId $User.Id
+        Write-Host "Added user: $Email to the group."
+    } else {
+        Write-Host "User not found: $Email"
+    }
+}
+
+Write-Host "Group setup complete!"
